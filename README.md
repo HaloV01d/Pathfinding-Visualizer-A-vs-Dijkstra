@@ -4,4 +4,8 @@ Editor de grid para marcar inicio/fin, obstáculos y (opcional) celdas con peso.
 
 Instalación de pygame para poder usar libreria.
 
+Comando para la instalación:
+1. python --version
+2. pip install pygame
+
 Documentación de Pygame "https://www.pygame.org/docs/" y "https://app.readthedocs.org/projects/pygame/downloads/pdf/latest/"
