@@ -3,3 +3,5 @@ Editor de grid para marcar inicio/fin, obstáculos y (opcional) celdas con peso.
 
 
 Instalación de pygame para poder usar libreria.
+
+Documentación de Pygame "https://www.pygame.org/docs/"
