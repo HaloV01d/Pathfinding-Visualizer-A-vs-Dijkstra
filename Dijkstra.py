@@ -1,5 +1,6 @@
 import pygame # Import Pygame library
 import sys # Import sys for system-specific parameters and functions
+import time # Import time for time-related functions
 
 pygame.init() # Initialize Pygame
 
@@ -90,7 +91,42 @@ def recolor_path(came_from, current, draw):
 
 # Placeholder for Dijkstra's algorithm implementation
 def dijkstra_algorithm(draw, grid, start, end):
-    pass  # Placeholder for Dijkstra's algorithm implementation
+    start_time = time.time() # Record start time
+    count = 0
+    open_set = []
+    open_set.append((0, count, start))
+    came_from = {}
+    g_score = {box: float("inf") for row in grid for box in row}
+    g_score[start] = 0
+
+    while open_set:
+        open_set.sort(key=lambda x: x[0])
+        current = open_set.pop(0)[2]
+
+        if current == end:
+            recolor_path(came_from, end, draw)
+            end.set_end()
+            start.set_start()
+            elapsed_time = time.time() - start_time # Calculate elapsed time
+            return round(elapsed_time, 3)
+
+        for neighbor in current.neighbors:
+            temp_g_score = g_score[current] + 1
+
+            if temp_g_score < g_score[neighbor]:
+                came_from[neighbor] = current
+                g_score[neighbor] = temp_g_score
+                if neighbor not in [i[2] for i in open_set]:
+                    count += 1
+                    open_set.append((g_score[neighbor], count, neighbor))
+                    neighbor.color = GREEN
+
+        draw()
+
+        if current != start:
+            current.color = RED
+
+    return False
 
 # Function to create the grid
 def make_grid():
@@ -106,14 +142,18 @@ def get_clicked_pos(pos):
     x, y = pos
     row = y // box_height
     col = x // box_width
+
+    row = max(0, min(row, rows - 1))
+    col = max(0, min(col, columns - 1))
     return row, col
 
-# Main function
 def main():
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Dijkstra's Algorithm Visualization")
-    grid = make_grid() # Create the grid
-    start = end = None # Start and end boxes
+    elapsed_time = None
+    font = pygame.font.SysFont("Arial", 24)
+    grid = make_grid()
+    start = end = None
     running = True
 
     def draw():
@@ -121,26 +161,40 @@ def main():
         for row in grid:
             for box in row:
                 box.draw(screen)
-        
+
         for i in range(rows + 1):
-            y = i * box_height
             pygame.draw.line(screen, GREY, (0, i * box_height), (WINDOW_WIDTH, i * box_height))
         for j in range(columns + 1):
-            x = j * box_width
             pygame.draw.line(screen, GREY, (j * box_width, 0), (j * box_width, WINDOW_HEIGHT))
+
+        if elapsed_time is not None:
+            text = font.render(f"Time: {elapsed_time} sec", True, BLACK)
+            screen.blit(text, (10, 10))
 
         pygame.display.update()
 
+
     while running:
-        draw() # Draw the grid
-        for event in pygame.event.get(): # Event handling
+        draw()
+        for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and start and end:
+                    for row_list in grid:
+                        for box in row_list:
+                            box.update_neighbors(grid)
+                    elapsed_time = dijkstra_algorithm(draw, grid, start, end)
+
+                if event.key == pygame.K_c:
+                    start = end = None
+                    grid = make_grid()
 
         if pygame.mouse.get_pressed()[0]:  # Left click
             pos = pygame.mouse.get_pos()
             row, col = get_clicked_pos(pos)
-            box = grid[row][col]  
+            box = grid[row][col]
             if not start and box != end and not box.is_wall:
                 start = box
                 start.set_start()
@@ -153,7 +207,7 @@ def main():
         elif pygame.mouse.get_pressed()[2]:  # Right click
             pos = pygame.mouse.get_pos()
             row, col = get_clicked_pos(pos)
-            box = grid[row][col]  
+            box = grid[row][col]
             was_start = (box == start)
             was_end = (box == end)
             box.reset()
@@ -162,19 +216,7 @@ def main():
             if was_end:
                 end = None
 
-            # Keyboard events   
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE and start and end:
-                    for row in grid:
-                        for box in row:
-                            box.update_neighbors(grid)
-                    dijkstra_algorithm(lambda: draw(), grid, start, end)
-
-                if event.key == pygame.K_c:
-                    start = end = None
-                    grid = make_grid()
-
-    pygame.quit() # Quit Pygame
+    pygame.quit()
 
 # Run the main function
 if __name__ == "__main__":
