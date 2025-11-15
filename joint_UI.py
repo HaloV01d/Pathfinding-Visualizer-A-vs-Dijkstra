@@ -5,17 +5,26 @@ from A_Star import A_Star_Algorithm
 
 pygame.init()
 
-# Panel and window settings
-PANEL_WIDTH = 400
-PANEL_HEIGHT = 500
-LABEL_HEIGHT = 50
-BOTTOM_STATS_HEIGHT = 70
-PANEL_SPACING = 20
+# Base layout dimensions
+BASE_PANEL_WIDTH = 400
+BASE_PANEL_HEIGHT = 500
+BASE_LABEL_HEIGHT = 50
+BASE_BOTTOM_HEIGHT = 70
+BASE_SPACING = 20
 
-WINDOW_WIDTH = PANEL_WIDTH * 3 + PANEL_SPACING * 2
-WINDOW_HEIGHT = LABEL_HEIGHT + PANEL_HEIGHT + BOTTOM_STATS_HEIGHT
+ASPECT_RATIO = 2.0  # width = 2 * height
 
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+# Mutable dimensions (update on resize)
+PANEL_WIDTH = BASE_PANEL_WIDTH
+PANEL_HEIGHT = BASE_PANEL_HEIGHT
+LABEL_HEIGHT = BASE_LABEL_HEIGHT
+BOTTOM_STATS_HEIGHT = BASE_BOTTOM_HEIGHT
+PANEL_SPACING = BASE_SPACING
+
+ROWS = 25
+COLS = 25
+
+screen = pygame.display.set_mode((1240, 620), pygame.RESIZABLE)
 pygame.display.set_caption("BFS | Dijkstra | A* Comparison")
 
 # Colors
@@ -23,127 +32,136 @@ WHITE = (255, 255, 255)
 GREY = (128, 128, 128)
 BLACK = (0, 0, 0)
 
-# Grid settings
-ROWS = 25
-COLS = 25
-BOX_WIDTH = PANEL_WIDTH // COLS
-BOX_HEIGHT = PANEL_HEIGHT // ROWS
+
+# Handle resizing and maintain aspect ratio
+def handle_resize(event_w, event_h):
+    global PANEL_WIDTH, PANEL_HEIGHT, LABEL_HEIGHT, BOTTOM_STATS_HEIGHT, PANEL_SPACING
+
+    new_h = event_h
+    new_w = int(new_h * ASPECT_RATIO)
+
+    pygame.display.set_mode((new_w, new_h), pygame.RESIZABLE)
+
+    scale = new_h / 620
+
+    PANEL_WIDTH = int(BASE_PANEL_WIDTH * scale)
+    PANEL_HEIGHT = int(BASE_PANEL_HEIGHT * scale)
+    LABEL_HEIGHT = int(BASE_LABEL_HEIGHT * scale)
+    BOTTOM_STATS_HEIGHT = int(BASE_BOTTOM_HEIGHT * scale)
+    PANEL_SPACING = int(BASE_SPACING * scale)
 
 
-# Make a clean grid
 def make_grid():
-    grid = []
-    for r in range(ROWS):
-        grid.append([])
-        for c in range(COLS):
-            grid[r].append(Box(r, c))
-    return grid
+    return [[Box(r, c) for c in range(COLS)] for r in range(ROWS)]
 
 
-# Compute X offset for each panel
 def panel_x(panel_index):
     return panel_index * (PANEL_WIDTH + PANEL_SPACING)
 
 
-# Draw grid lines
-def draw_grid_lines(panel_index):
+# Draw a centered letterboxed grid
+def draw_panel(grid, panel_index):
     x_offset = panel_x(panel_index)
 
+    # Compute cell dimensions
+    box_w = PANEL_WIDTH // COLS
+    box_h = PANEL_HEIGHT // ROWS
+    cell = min(box_w, box_h)
+
+    used_w = cell * COLS
+    used_h = cell * ROWS
+
+    # Letterbox padding
+    pad_x = x_offset + (PANEL_WIDTH - used_w) // 2
+    pad_y = LABEL_HEIGHT + (PANEL_HEIGHT - used_h) // 2
+
+    # Draw cells
+    for row in grid:
+        for box in row:
+            rect = pygame.Rect(
+                pad_x + box.col * cell,
+                pad_y + box.row * cell,
+                cell, cell
+            )
+            pygame.draw.rect(screen, box.color, rect)
+
+    # Draw grid lines
     for i in range(ROWS + 1):
         pygame.draw.line(
             screen, GREY,
-            (x_offset, LABEL_HEIGHT + i * BOX_HEIGHT),
-            (x_offset + PANEL_WIDTH, LABEL_HEIGHT + i * BOX_HEIGHT)
+            (pad_x, pad_y + i * cell),
+            (pad_x + used_w, pad_y + i * cell)
         )
 
     for j in range(COLS + 1):
         pygame.draw.line(
             screen, GREY,
-            (x_offset + j * BOX_WIDTH, LABEL_HEIGHT),
-            (x_offset + j * BOX_WIDTH, LABEL_HEIGHT + PANEL_HEIGHT)
+            (pad_x + j * cell, pad_y),
+            (pad_x + j * cell, pad_y + used_h)
         )
 
 
-# Draw a full panel
-def draw_panel(grid, panel_index):
-    x_offset = panel_x(panel_index)
-
-    for row in grid:
-        for box in row:
-            rect = pygame.Rect(
-                x_offset + box.col * BOX_WIDTH,
-                LABEL_HEIGHT + box.row * BOX_HEIGHT,
-                BOX_WIDTH,
-                BOX_HEIGHT
-            )
-            pygame.draw.rect(screen, box.color, rect)
-
-    draw_grid_lines(panel_index)
-
-
-# Draw top labels
 def draw_labels():
     font = pygame.font.SysFont("Arial", 28, bold=True)
     labels = ["BFS", "Dijkstra", "A*"]
 
     for i, text in enumerate(labels):
         center_x = panel_x(i) + PANEL_WIDTH // 2
-        label_surface = font.render(text, True, BLACK)
-        label_rect = label_surface.get_rect(center=(center_x, LABEL_HEIGHT // 2))
-        screen.blit(label_surface, label_rect)
+        surf = font.render(text, True, BLACK)
+        rect = surf.get_rect(center=(center_x, LABEL_HEIGHT // 2))
+        screen.blit(surf, rect)
 
 
-# Convert mouse position → (row, col) for the CENTER panel only
-def get_center_grid_pos(mouse_x, mouse_y):
-    panel_index = 1  # middle panel
+# Map mouse click into centered grid
+def get_center_grid_pos(mx, my):
+    panel_index = 1
     x_offset = panel_x(panel_index)
 
-    panel_left = x_offset
-    panel_top = LABEL_HEIGHT
-    panel_right = panel_left + PANEL_WIDTH
-    panel_bottom = panel_top + PANEL_HEIGHT
+    cell = min(PANEL_WIDTH // COLS, PANEL_HEIGHT // ROWS)
+    used_w = cell * COLS
+    used_h = cell * ROWS
 
-    # only accept clicks inside middle panel grid
-    if not (panel_left <= mouse_x < panel_right and
-            panel_top <= mouse_y < panel_bottom):
+    pad_x = x_offset + (PANEL_WIDTH - used_w) // 2
+    pad_y = LABEL_HEIGHT + (PANEL_HEIGHT - used_h) // 2
+
+    # Must click inside the grid area
+    if not (pad_x <= mx < pad_x + used_w and
+            pad_y <= my < pad_y + used_h):
         return None
 
-    local_x = mouse_x - panel_left
-    local_y = mouse_y - panel_top
+    local_x = mx - pad_x
+    local_y = my - pad_y
 
-    row = local_y // BOX_HEIGHT
-    col = local_x // BOX_WIDTH
-    return (row, col)
+    col = local_x // cell
+    row = local_y // cell
+
+    if 0 <= row < ROWS and 0 <= col < COLS:
+        return row, col
+    return None
 
 
-# Apply edit to ALL THREE grids, using row/col from center panel
-def apply_edit(row, col, button, start, end,
-               bfs_grid, dij_grid, astar_grid):
-
-    b1 = bfs_grid[row][col]
-    b2 = dij_grid[row][col]
-    b3 = astar_grid[row][col]
-    boxes = [b1, b2, b3]
+def apply_edit(row, col, button, start, end, g1, g2, g3):
+    boxes = [g1[row][col], g2[row][col], g3[row][col]]
 
     if button == 1:  # left click
-        # Start
-        if start is None and not b1.is_wall:
+        # Set start
+        if start is None and not boxes[0].is_wall:
             for b in boxes:
                 b.set_start()
-            start = (row, col)
+            return (row, col), end
 
-        # End
-        elif end is None and not b1.is_wall and (row, col) != start:
+        # Set end
+        if end is None and not boxes[0].is_wall and (row, col) != start:
             for b in boxes:
                 b.set_end()
-            end = (row, col)
+            return start, (row, col)
 
-        # Wall
-        elif (row, col) != start and (row, col) != end:
+        # Set wall
+        if (row, col) != start and (row, col) != end:
             for b in boxes:
                 b.set_wall()
 
-    elif button == 3:  # right click
+    elif button == 3:  # right
         for b in boxes:
             b.reset()
 
@@ -158,7 +176,6 @@ def apply_edit(row, col, button, start, end,
 def main():
     running = True
 
-    # Three mirrored editable grids
     bfs_grid = make_grid()
     dij_grid = make_grid()
     astar_grid = make_grid()
@@ -167,11 +184,9 @@ def main():
     end = None
 
     while running:
-
         screen.fill(WHITE)
         draw_labels()
 
-        # Draw all panels
         draw_panel(bfs_grid, 0)
         draw_panel(dij_grid, 1)
         draw_panel(astar_grid, 2)
@@ -182,9 +197,71 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        # Mouse editing only in middle panel, mirrored to all grids
+            if event.type == pygame.VIDEORESIZE:
+                handle_resize(event.w, event.h)
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE and start and end:
+                    
+                    # Convert stored coords into actual Box objects
+                    sr, sc = start
+                    er, ec = end
+
+                    bfs_start  = bfs_grid[sr][sc]
+                    bfs_end    = bfs_grid[er][ec]
+                    dij_start  = dij_grid[sr][sc]
+                    dij_end    = dij_grid[er][ec]
+                    ast_start  = astar_grid[sr][sc]
+                    ast_end    = astar_grid[er][ec]
+
+                    # Define per-panel draw functions
+                    def draw_bfs():
+                        screen.fill(WHITE)
+                        draw_labels()
+                        draw_panel(bfs_grid, 0)
+                        draw_panel(dij_grid, 1)
+                        draw_panel(astar_grid, 2)
+                        pygame.display.update()
+
+                    def draw_dij():
+                        screen.fill(WHITE)
+                        draw_labels()
+                        draw_panel(bfs_grid, 0)
+                        draw_panel(dij_grid, 1)
+                        draw_panel(astar_grid, 2)
+                        pygame.display.update()
+
+                    def draw_ast():
+                        screen.fill(WHITE)
+                        draw_labels()
+                        draw_panel(bfs_grid, 0)
+                        draw_panel(dij_grid, 1)
+                        draw_panel(astar_grid, 2)
+                        pygame.display.update()
+
+                    # Update neighbors for all grids before running algorithms
+                    for r in range(ROWS):
+                        for c in range(COLS):
+                            bfs_grid[r][c].update_neighbors(bfs_grid)
+                            dij_grid[r][c].update_neighbors(dij_grid)
+                            astar_grid[r][c].update_neighbors(astar_grid)
+
+                    # Run all three algorithms
+                    BFS_algorithm(draw_bfs, bfs_grid, bfs_start, bfs_end)
+                    dijkstra_algorithm(draw_dij, dij_grid, dij_start, dij_end)
+                    A_Star_Algorithm(draw_ast, astar_grid, ast_start, ast_end)
+
+                if event.key == pygame.K_r:
+                    # Reset grids and start/end points
+                    bfs_grid = make_grid()
+                    dij_grid = make_grid()
+                    astar_grid = make_grid()
+                    start = None
+                    end = None
+
+        # Mouse editing (center panel only)
         mouse = pygame.mouse.get_pressed()
-        if mouse[0] or mouse[2]:  # left or right
+        if mouse[0] or mouse[2]:
             mx, my = pygame.mouse.get_pos()
             pos = get_center_grid_pos(mx, my)
             if pos is not None:
