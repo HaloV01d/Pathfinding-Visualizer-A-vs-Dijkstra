@@ -1,6 +1,7 @@
 import pygame # Import Pygame library
 import sys # Import sys for system-specific parameters and functions
 import time # Import time for time-related functions
+from collections import deque # Import deque for BFS queue
 
 pygame.init() # Initialize Pygame
 
@@ -89,51 +90,30 @@ def recolor_path(came_from, current, draw):
         current.color = PURPLE
         draw()
 
-# Manhattan distance
-def heuristic(a, b): 
-    return abs(a.row - b.row) + abs(a.col - b.col)
-
-# A*'s algorithm implementation
-def A_Star_Algorithm(draw, grid, start, end):
-    start_time = time.time()
-    count = 0
-    open_set = []
-    open_set.append((0, count, start))
+# BFS algorithm implementation
+def BFS_algorithm(draw, grid, start, end):
+    start_time = time.time() # Record start time
+    queue = deque()
+    queue.append(start)
     came_from = {}
+    visited = {start}
 
-    g_score = {box: float("inf") for row in grid for box in row}
-    g_score[start] = 0
-
-    f_score = {box: float("inf") for row in grid for box in row}
-    f_score[start] = heuristic(start, end)
-
-    open_set_hash = {start}
-
-    while open_set:
-        open_set.sort(key=lambda x: x[0])
-        current = open_set.pop(0)[2]
-        open_set_hash.remove(current)
+    while queue:
+        current = queue.popleft()
 
         if current == end:
             recolor_path(came_from, end, draw)
             end.set_end()
             start.set_start()
-            elapsed_time = time.time() - start_time
+            elapsed_time = time.time() - start_time # Calculate elapsed time
             return round(elapsed_time, 3)
 
         for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + 1
-
-            if temp_g_score < g_score[neighbor]:
+            if neighbor not in visited:
+                visited.add(neighbor)
                 came_from[neighbor] = current
-                g_score[neighbor] = temp_g_score
-                f_score[neighbor] = temp_g_score + heuristic(neighbor, end)
-
-                if neighbor not in open_set_hash:
-                    count += 1
-                    open_set.append((f_score[neighbor], count, neighbor))
-                    open_set_hash.add(neighbor)
-                    neighbor.color = GREEN
+                queue.append(neighbor)
+                neighbor.color = GREEN
 
         draw()
 
@@ -163,7 +143,7 @@ def get_clicked_pos(pos):
 
 def main():
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-    pygame.display.set_caption("A*'s Algorithm Visualization")
+    pygame.display.set_caption("BFS Algorithm Visualization")
     elapsed_time = None
     font = pygame.font.SysFont("Arial", 24)
     grid = make_grid()
@@ -187,7 +167,6 @@ def main():
 
         pygame.display.update()
 
-
     while running:
         draw()
         for event in pygame.event.get():
@@ -199,7 +178,7 @@ def main():
                     for row_list in grid:
                         for box in row_list:
                             box.update_neighbors(grid)
-                    elapsed_time = A_Star_Algorithm(draw, grid, start, end)
+                    elapsed_time = BFS_algorithm(draw, grid, start, end)
 
                 if event.key == pygame.K_c:
                     start = end = None
