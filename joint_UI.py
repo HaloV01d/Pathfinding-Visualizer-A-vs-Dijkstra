@@ -50,11 +50,11 @@ def handle_resize(event_w, event_h):
     BOTTOM_STATS_HEIGHT = int(BASE_BOTTOM_HEIGHT * scale)
     PANEL_SPACING = int(BASE_SPACING * scale)
 
-
+# Create a grid of Box objects
 def make_grid():
     return [[Box(r, c) for c in range(COLS)] for r in range(ROWS)]
 
-
+# X offset for each panel
 def panel_x(panel_index):
     return panel_index * (PANEL_WIDTH + PANEL_SPACING)
 
@@ -100,7 +100,7 @@ def draw_panel(grid, panel_index):
             (pad_x + j * cell, pad_y + used_h)
         )
 
-
+# Draw panel labels
 def draw_labels():
     font = pygame.font.SysFont("Arial", 28, bold=True)
     labels = ["BFS", "Dijkstra", "A*"]
@@ -109,6 +109,26 @@ def draw_labels():
         center_x = panel_x(i) + PANEL_WIDTH // 2
         surf = font.render(text, True, BLACK)
         rect = surf.get_rect(center=(center_x, LABEL_HEIGHT // 2))
+        screen.blit(surf, rect)
+
+# Draw timing information below each panel
+def draw_timers(timers):
+    font = pygame.font.SysFont("Arial", 20)
+    labels = ["BFS", "Dijkstra", "A*"]
+    
+    for i, (label, time_val) in enumerate(zip(labels, timers)):
+        center_x = panel_x(i) + PANEL_WIDTH // 2
+        y_pos = LABEL_HEIGHT + PANEL_HEIGHT + 10
+        
+        if time_val is not None:
+            text = f"Time: {time_val:.3f}s"
+            color = BLACK
+        else:
+            text = "Time: --"
+            color = GREY
+        
+        surf = font.render(text, True, color)
+        rect = surf.get_rect(center=(center_x, y_pos))
         screen.blit(surf, rect)
 
 
@@ -139,7 +159,7 @@ def get_center_grid_pos(mx, my):
         return row, col
     return None
 
-
+# Apply edits (set start, end, wall, reset) to all three grids
 def apply_edit(row, col, button, start, end, g1, g2, g3):
     boxes = [g1[row][col], g2[row][col], g3[row][col]]
 
@@ -172,8 +192,8 @@ def apply_edit(row, col, button, start, end, g1, g2, g3):
 
     return start, end
 
-
-def main():
+# Main function to run the visualization
+def main(): 
     running = True
 
     bfs_grid = make_grid()
@@ -182,6 +202,9 @@ def main():
 
     start = None
     end = None
+    
+    # Store timing results for each algorithm
+    timers = [None, None, None]  # [BFS, Dijkstra, A*]
 
     while running:
         screen.fill(WHITE)
@@ -190,6 +213,8 @@ def main():
         draw_panel(bfs_grid, 0)
         draw_panel(dij_grid, 1)
         draw_panel(astar_grid, 2)
+        
+        draw_timers(timers)
 
         pygame.display.update()
 
@@ -221,6 +246,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
+                        draw_timers(timers)
                         pygame.display.update()
 
                     def draw_dij():
@@ -229,6 +255,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
+                        draw_timers(timers)
                         pygame.display.update()
 
                     def draw_ast():
@@ -237,6 +264,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
+                        draw_timers(timers)
                         pygame.display.update()
 
                     # Update neighbors for all grids before running algorithms
@@ -246,10 +274,10 @@ def main():
                             dij_grid[r][c].update_neighbors(dij_grid)
                             astar_grid[r][c].update_neighbors(astar_grid)
 
-                    # Run all three algorithms
-                    BFS_algorithm(draw_bfs, bfs_grid, bfs_start, bfs_end)
-                    dijkstra_algorithm(draw_dij, dij_grid, dij_start, dij_end)
-                    A_Star_Algorithm(draw_ast, astar_grid, ast_start, ast_end)
+                    # Run all three algorithms and capture timing
+                    timers[0] = BFS_algorithm(draw_bfs, bfs_grid, bfs_start, bfs_end)
+                    timers[1] = dijkstra_algorithm(draw_dij, dij_grid, dij_start, dij_end)
+                    timers[2] = A_Star_Algorithm(draw_ast, astar_grid, ast_start, ast_end)
 
                 if event.key == pygame.K_r:
                     # Reset grids and start/end points
@@ -258,6 +286,7 @@ def main():
                     astar_grid = make_grid()
                     start = None
                     end = None
+                    timers = [None, None, None]  # Reset timers
 
         # Mouse editing (center panel only)
         mouse = pygame.mouse.get_pressed()
@@ -275,6 +304,6 @@ def main():
 
     pygame.quit()
 
-
+#  Main entry point
 if __name__ == "__main__":
     main()

@@ -161,7 +161,7 @@ def get_clicked_pos(pos):
     col = max(0, min(col, columns - 1))
     return row, col
 
-def main():
+def main(): # Main function to run the visualization
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("A*'s Algorithm Visualization")
     elapsed_time = None
