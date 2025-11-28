@@ -11,6 +11,8 @@ RED = (255, 0, 0)
 TURQUOISE = (64, 224, 208)
 PURPLE = (128, 0, 128)
 ORANGE = (255, 165, 0)
+BROWN = (150, 75, 0)
+BLUE = (0, 100, 255)
 
 # Box class representing each cell in the grid
 class Box:
@@ -20,6 +22,7 @@ class Box:
         self.color = WHITE
         self.neighbors = []
         self.is_wall = False
+        self.weight = 1 # default weight
 
     def set_start(self): # Set box as start
         self.color = ORANGE
@@ -31,9 +34,18 @@ class Box:
         self.color = BLACK
         self.is_wall = True
 
+    def set_mud(self): # Weighted box (3)
+        self.color = BROWN
+        self.weight = 3
+
+    def set_water(self): # Weighted box (5)
+        self.color = BLUE
+        self.weight = 5
+
     def reset(self): # Reset box to default
         self.color = WHITE
         self.is_wall = False
+        self.weight = 1
 
     def is_start(self): # Check if box is start
         return self.color == ORANGE
@@ -82,6 +94,7 @@ def make_grid():
 def expanded_and_path(grid):
     expanded = 0     # number of closed (RED) nodes
     path_len = 0     # number of purple tiles
+    path_cost = 0    # sum of weights of purple tiles
 
     for row in grid:
         for box in row:
@@ -89,5 +102,6 @@ def expanded_and_path(grid):
                 expanded += 1
             if box.is_path():
                 path_len += 1
+                path_cost += box.weight
 
-    return expanded, path_len
+    return expanded, path_len, path_cost

@@ -48,7 +48,7 @@ def A_Star_Algorithm(draw, grid, start, end):
             return round(elapsed_time, 3)
 
         for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + 1
+            temp_g_score = g_score[current] + current.weight
 
             if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current

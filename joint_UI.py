@@ -106,16 +106,18 @@ def draw_labels():
     for i, text in enumerate(labels):
         center_x = panel_x(i) + PANEL_WIDTH // 2
         surf = font.render(text, True, BLACK)
-        rect = surf.get_rect(center=(center_x, LABEL_HEIGHT // 2))
+        rect = surf.get_rect(center=(center_x, LABEL_HEIGHT // 0.75))
         screen.blit(surf, rect)
 
-def draw_stats(timers, expanded, path_lengths):
-    font = pygame.font.SysFont("Arial", 20)
+# Draw stats text
+def draw_stats(timers, expanded, path_lengths, path_costs):
+    font = pygame.font.SysFont("Arial", 18)
     labels = ["BFS", "Dijkstra", "A*"]
+    spacing = 20
 
     for i, label in enumerate(labels):
         center_x = panel_x(i) + PANEL_WIDTH // 2
-        y_base = LABEL_HEIGHT + PANEL_HEIGHT + 10
+        y_base = LABEL_HEIGHT + PANEL_HEIGHT - 20
 
         # Time
         if timers[i] is not None:
@@ -136,7 +138,7 @@ def draw_stats(timers, expanded, path_lengths):
             e_string = "Expanded: --"
             e_color = GREY
         surf = font.render(e_string, True, e_color)
-        rect = surf.get_rect(center=(center_x, y_base + 25))
+        rect = surf.get_rect(center=(center_x, y_base + spacing))
         screen.blit(surf, rect)
 
         # Path Length
@@ -147,9 +149,43 @@ def draw_stats(timers, expanded, path_lengths):
             p_string = "Path Length: --"
             p_color = GREY
         surf = font.render(p_string, True, p_color)
-        rect = surf.get_rect(center=(center_x, y_base + 50))
+        rect = surf.get_rect(center=(center_x, y_base + spacing * 2))
         screen.blit(surf, rect)
 
+        # Path Cost
+        if path_costs[i] is not None:
+            c_string = f"Cost: {path_costs[i]}"
+            c_color = BLACK
+        else:
+            c_string = "Cost: --"
+            c_color = GREY
+
+        surf = font.render(c_string, True, c_color)
+        rect = surf.get_rect(center=(center_x, y_base + spacing * 3))
+        screen.blit(surf, rect)
+
+# Draw legend with current paint mode and keybinds
+def draw_legend(paint_mode):
+    font_big = pygame.font.SysFont("Arial", 20)
+    font_small = pygame.font.SysFont("Arial", 16)
+
+    # Mode line
+    mode_text = f"Mode: {paint_mode.capitalize()}"
+    surf = font_big.render(mode_text, True, BLACK)
+    screen.blit(surf, (10, 5))
+
+    # Legend lines
+    legend = [
+        "Q: Wall    W: Mud    E: Water",
+        "R: Reset full grid",
+        "Space: Run algorithms"
+    ]
+
+    y = 30
+    for line in legend:
+        surf = font_small.render(line, True, BLACK)
+        screen.blit(surf, (10, y))
+        y += 20
 
 # Map mouse click into centered grid
 def get_center_grid_pos(mx, my):
@@ -179,7 +215,7 @@ def get_center_grid_pos(mx, my):
     return None
 
 # Apply edits (set start, end, wall, reset) to all three grids
-def apply_edit(row, col, button, start, end, g1, g2, g3):
+def apply_edit(row, col, button, start, end, g1, g2, g3, paint_mode):
     boxes = [g1[row][col], g2[row][col], g3[row][col]]
 
     if button == 1:  # left click
@@ -194,9 +230,24 @@ def apply_edit(row, col, button, start, end, g1, g2, g3):
             for b in boxes:
                 b.set_end()
             return start, (row, col)
+        
+        if (row, col) == start or (row, col) == end:
+            return start, end
+
+        # Set weighted mud tile
+        if paint_mode == "mud" and not g1[row][col].is_wall:
+            for b in [g1[row][col], g2[row][col], g3[row][col]]:
+                b.set_mud()
+            return start, end
+
+        # Set weighted water tile
+        if paint_mode == "water" and not g1[row][col].is_wall:
+            for b in [g1[row][col], g2[row][col], g3[row][col]]:
+                b.set_water()
+            return start, end
 
         # Set wall
-        if (row, col) != start and (row, col) != end:
+        if paint_mode == "wall":
             for b in boxes:
                 b.set_wall()
 
@@ -226,16 +277,20 @@ def main():
     timers = [None, None, None]
     expanded = [None, None, None]
     path_lengths = [None, None, None]
+    path_costs = [None, None, None]
+
+    paint_mode = "wall"   # default drawing mode
 
     while running:
         screen.fill(WHITE)
         draw_labels()
+        draw_legend(paint_mode)
 
         draw_panel(bfs_grid, 0)
         draw_panel(dij_grid, 1)
         draw_panel(astar_grid, 2)
         
-        draw_stats(timers, expanded, path_lengths)
+        draw_stats(timers, expanded, path_lengths, path_costs)
 
         pygame.display.update()
 
@@ -267,7 +322,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
-                        draw_stats(timers, expanded, path_lengths)
+                        draw_stats(timers, expanded, path_lengths, path_costs)
                         pygame.display.update()
 
                     def draw_dij():
@@ -276,7 +331,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
-                        draw_stats(timers, expanded, path_lengths)
+                        draw_stats(timers, expanded, path_lengths, path_costs)
                         pygame.display.update()
 
                     def draw_ast():
@@ -285,7 +340,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
-                        draw_stats(timers, expanded, path_lengths)
+                        draw_stats(timers, expanded, path_lengths, path_costs)
                         pygame.display.update()
 
                     # Update neighbors for all grids before running algorithms
@@ -297,13 +352,13 @@ def main():
 
                     # Run all three algorithms and capture stats
                     timers[0] = BFS_algorithm(draw_bfs, bfs_grid, bfs_start, bfs_end)
-                    expanded[0], path_lengths[0] = expanded_and_path(bfs_grid)
+                    expanded[0], path_lengths[0], path_costs[0] = expanded_and_path(bfs_grid)
 
                     timers[1] = dijkstra_algorithm(draw_dij, dij_grid, dij_start, dij_end)
-                    expanded[1], path_lengths[1] = expanded_and_path(dij_grid)
+                    expanded[1], path_lengths[1], path_costs[1] = expanded_and_path(dij_grid)
 
                     timers[2] = A_Star_Algorithm(draw_ast, astar_grid, ast_start, ast_end)
-                    expanded[2], path_lengths[2] = expanded_and_path(astar_grid)
+                    expanded[2], path_lengths[2], path_costs[2] = expanded_and_path(astar_grid)
 
                 if event.key == pygame.K_r:
                     # Reset grids and start/end points
@@ -315,7 +370,17 @@ def main():
                     timers = [None, None, None]  # Reset timers
                     expanded = [None, None, None] # Reset expanded nodes
                     path_lengths = [None, None, None] # Reset path length
+                    path_costs = [None, None, None] # Reset path costs
+                    paint_mode = "wall" # default paint mode
 
+                if event.key == pygame.K_q:
+                    paint_mode = "wall"
+
+                if event.key == pygame.K_w:
+                    paint_mode = "mud"
+
+                if event.key == pygame.K_e:
+                    paint_mode = "water"
 
         # Mouse editing (center panel only)
         mouse = pygame.mouse.get_pressed()
@@ -328,7 +393,8 @@ def main():
                     row, col,
                     1 if mouse[0] else 3,
                     start, end,
-                    bfs_grid, dij_grid, astar_grid
+                    bfs_grid, dij_grid, astar_grid,
+                    paint_mode
                 )
 
     pygame.quit()
