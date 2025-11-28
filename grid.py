@@ -78,3 +78,16 @@ def recolor_path(came_from, current, draw):
 # Function to create the grid
 def make_grid():
     return [[Box(r, c) for c in range(COLS)] for r in range(ROWS)]
+
+def expanded_and_path(grid):
+    expanded = 0     # number of closed (RED) nodes
+    path_len = 0     # number of purple tiles
+
+    for row in grid:
+        for box in row:
+            if box.is_closed():
+                expanded += 1
+            if box.is_path():
+                path_len += 1
+
+    return expanded, path_len

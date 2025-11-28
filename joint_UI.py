@@ -3,7 +3,7 @@ from BFS import BFS_algorithm
 from Dijkstra import dijkstra_algorithm
 from A_Star import A_Star_Algorithm
 from grid import (
-    Box, make_grid,
+    Box, make_grid, expanded_and_path,
     ROWS, COLS,
     WHITE, BLACK, GREY
 )
@@ -109,24 +109,45 @@ def draw_labels():
         rect = surf.get_rect(center=(center_x, LABEL_HEIGHT // 2))
         screen.blit(surf, rect)
 
-# Draw timing information below each panel
-def draw_timers(timers):
+def draw_stats(timers, expanded, path_lengths):
     font = pygame.font.SysFont("Arial", 20)
     labels = ["BFS", "Dijkstra", "A*"]
-    
-    for i, (label, time_val) in enumerate(zip(labels, timers)):
+
+    for i, label in enumerate(labels):
         center_x = panel_x(i) + PANEL_WIDTH // 2
-        y_pos = LABEL_HEIGHT + PANEL_HEIGHT + 10
-        
-        if time_val is not None:
-            text = f"Time: {time_val:.3f}s"
-            color = BLACK
+        y_base = LABEL_HEIGHT + PANEL_HEIGHT + 10
+
+        # Time
+        if timers[i] is not None:
+            t_string = f"Time: {timers[i]:.3f}s"
+            t_color = BLACK
         else:
-            text = "Time: --"
-            color = GREY
-        
-        surf = font.render(text, True, color)
-        rect = surf.get_rect(center=(center_x, y_pos))
+            t_string = "Time: --"
+            t_color = GREY
+        surf = font.render(t_string, True, t_color)
+        rect = surf.get_rect(center=(center_x, y_base))
+        screen.blit(surf, rect)
+
+        # Expanded
+        if expanded[i] is not None:
+            e_string = f"Expanded: {expanded[i]}"
+            e_color = BLACK
+        else:
+            e_string = "Expanded: --"
+            e_color = GREY
+        surf = font.render(e_string, True, e_color)
+        rect = surf.get_rect(center=(center_x, y_base + 25))
+        screen.blit(surf, rect)
+
+        # Path Length
+        if path_lengths[i] is not None:
+            p_string = f"Path Length: {path_lengths[i]}"
+            p_color = BLACK
+        else:
+            p_string = "Path Length: --"
+            p_color = GREY
+        surf = font.render(p_string, True, p_color)
+        rect = surf.get_rect(center=(center_x, y_base + 50))
         screen.blit(surf, rect)
 
 
@@ -201,8 +222,10 @@ def main():
     start = None
     end = None
     
-    # Store timing results for each algorithm
-    timers = [None, None, None]  # [BFS, Dijkstra, A*]
+    # Store stats for each algorithm [BFS, Dijkstra, A*]
+    timers = [None, None, None]
+    expanded = [None, None, None]
+    path_lengths = [None, None, None]
 
     while running:
         screen.fill(WHITE)
@@ -212,7 +235,7 @@ def main():
         draw_panel(dij_grid, 1)
         draw_panel(astar_grid, 2)
         
-        draw_timers(timers)
+        draw_stats(timers, expanded, path_lengths)
 
         pygame.display.update()
 
@@ -244,7 +267,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
-                        draw_timers(timers)
+                        draw_stats(timers, expanded, path_lengths)
                         pygame.display.update()
 
                     def draw_dij():
@@ -253,7 +276,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
-                        draw_timers(timers)
+                        draw_stats(timers, expanded, path_lengths)
                         pygame.display.update()
 
                     def draw_ast():
@@ -262,7 +285,7 @@ def main():
                         draw_panel(bfs_grid, 0)
                         draw_panel(dij_grid, 1)
                         draw_panel(astar_grid, 2)
-                        draw_timers(timers)
+                        draw_stats(timers, expanded, path_lengths)
                         pygame.display.update()
 
                     # Update neighbors for all grids before running algorithms
@@ -272,10 +295,15 @@ def main():
                             dij_grid[r][c].update_neighbors(dij_grid)
                             astar_grid[r][c].update_neighbors(astar_grid)
 
-                    # Run all three algorithms and capture timing
+                    # Run all three algorithms and capture stats
                     timers[0] = BFS_algorithm(draw_bfs, bfs_grid, bfs_start, bfs_end)
+                    expanded[0], path_lengths[0] = expanded_and_path(bfs_grid)
+
                     timers[1] = dijkstra_algorithm(draw_dij, dij_grid, dij_start, dij_end)
+                    expanded[1], path_lengths[1] = expanded_and_path(dij_grid)
+
                     timers[2] = A_Star_Algorithm(draw_ast, astar_grid, ast_start, ast_end)
+                    expanded[2], path_lengths[2] = expanded_and_path(astar_grid)
 
                 if event.key == pygame.K_r:
                     # Reset grids and start/end points
@@ -285,6 +313,9 @@ def main():
                     start = None
                     end = None
                     timers = [None, None, None]  # Reset timers
+                    expanded = [None, None, None] # Reset expanded nodes
+                    path_lengths = [None, None, None] # Reset path length
+
 
         # Mouse editing (center panel only)
         mouse = pygame.mouse.get_pressed()
