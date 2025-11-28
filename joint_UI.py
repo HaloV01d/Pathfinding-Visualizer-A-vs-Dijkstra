@@ -1,7 +1,12 @@
 import pygame
-from BFS import BFS_algorithm, Box
+from BFS import BFS_algorithm
 from Dijkstra import dijkstra_algorithm
 from A_Star import A_Star_Algorithm
+from grid import (
+    Box, make_grid,
+    ROWS, COLS,
+    WHITE, BLACK, GREY
+)
 
 pygame.init()
 
@@ -20,9 +25,6 @@ PANEL_HEIGHT = BASE_PANEL_HEIGHT
 LABEL_HEIGHT = BASE_LABEL_HEIGHT
 BOTTOM_STATS_HEIGHT = BASE_BOTTOM_HEIGHT
 PANEL_SPACING = BASE_SPACING
-
-ROWS = 25
-COLS = 25
 
 screen = pygame.display.set_mode((1240, 620), pygame.RESIZABLE)
 pygame.display.set_caption("BFS | Dijkstra | A* Comparison")
@@ -49,10 +51,6 @@ def handle_resize(event_w, event_h):
     LABEL_HEIGHT = int(BASE_LABEL_HEIGHT * scale)
     BOTTOM_STATS_HEIGHT = int(BASE_BOTTOM_HEIGHT * scale)
     PANEL_SPACING = int(BASE_SPACING * scale)
-
-# Create a grid of Box objects
-def make_grid():
-    return [[Box(r, c) for c in range(COLS)] for r in range(ROWS)]
 
 # X offset for each panel
 def panel_x(panel_index):

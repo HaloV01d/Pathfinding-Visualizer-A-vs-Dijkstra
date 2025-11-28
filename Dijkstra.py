@@ -1,17 +1,19 @@
 import pygame # Import Pygame library
 import sys # Import sys for system-specific parameters and functions
 import time # Import time for time-related functions
+from grid import (
+    Box, make_grid, recolor_path,
+    ROWS, COLS,
+    WHITE, BLACK, GREY, GREEN, RED, TURQUOISE, PURPLE, ORANGE
+)
 
 pygame.init() # Initialize Pygame
 
 WINDOW_WIDTH = 700 # Width of the window
 WINDOW_HEIGHT = 700 # Height of the window
 
-columns = 25 # Number of columns
-rows = 25 # Number of rows
-
-box_width = WINDOW_WIDTH // columns # Width of each box
-box_height = WINDOW_HEIGHT // rows # Height of each box
+box_width = WINDOW_WIDTH // COLS # Width of each box
+box_height = WINDOW_HEIGHT // ROWS # Height of each box
 
 # Colors
 WHITE = (255, 255, 255)
@@ -23,73 +25,7 @@ TURQUOISE = (64, 224, 208)
 PURPLE = (128, 0, 128)
 ORANGE = (255, 165, 0)
 
-# Box class representing each cell in the grid
-class Box:
-    def __init__(self, row, col): # Initialize box with row and column
-        self.row = row
-        self.col = col
-        self.x = col * box_width
-        self.y = row * box_height
-        self.color = WHITE
-        self.neighbors = []
-        self.is_wall = False
-
-    def draw(self, screen): # Draw the box on the screen
-        pygame.draw.rect(screen, self.color, (self.x, self.y, box_width, box_height))
-        # pygame.draw.rect(screen, BLACK, (self.x, self.y, box_width, box_height), 1) # Border
-
-    def set_start(self): # Set box as start
-        self.color = ORANGE
-
-    def set_end(self): # Set box as end
-        self.color = TURQUOISE
-
-    def set_wall(self): # Set box as wall
-        self.color = BLACK
-        self.is_wall = True
-
-    def reset(self): # Reset box to default
-        self.color = WHITE
-        self.is_wall = False
-
-    def is_start(self): # Check if box is start
-        return self.color == ORANGE
-    
-    def is_end(self): # Check if box is end
-        return self.color == TURQUOISE
-    
-    def is_closed(self): # Check if box is closed
-        return self.color == RED
-    
-    def is_open(self): # Check if box is open
-        return self.color == GREEN
-    
-    def is_path(self): # Check if box is part of the path
-        return self.color == PURPLE
-    
-    def update_neighbors(self, grid): # Update neighbors of the box
-        self.neighbors = []
-        # Down
-        if self.row < rows - 1 and not grid[self.row + 1][self.col].is_wall:
-            self.neighbors.append(grid[self.row + 1][self.col])
-        # Up
-        if self.row > 0 and not grid[self.row - 1][self.col].is_wall:
-            self.neighbors.append(grid[self.row - 1][self.col])
-        # Right
-        if self.col < columns - 1 and not grid[self.row][self.col + 1].is_wall:
-            self.neighbors.append(grid[self.row][self.col + 1])
-        # Left
-        if self.col > 0 and not grid[self.row][self.col - 1].is_wall:
-            self.neighbors.append(grid[self.row][self.col - 1])
-
-# Function to recolor the path from start to end
-def recolor_path(came_from, current, draw):
-    while current in came_from:
-        current = came_from[current]
-        current.color = PURPLE
-        draw()
-
-# Placeholder for Dijkstra's algorithm implementation
+# Dijkstra's algorithm implementation
 def dijkstra_algorithm(draw, grid, start, end):
     start_time = time.time() # Record start time
     count = 0
@@ -128,23 +64,14 @@ def dijkstra_algorithm(draw, grid, start, end):
 
     return False
 
-# Function to create the grid
-def make_grid():
-    grid = []
-    for r in range(rows):
-        grid.append([])
-        for c in range(columns):
-            grid[r].append(Box(r, c))
-    return grid
-
 # Function to get the position of the mouse click
 def get_clicked_pos(pos):
     x, y = pos
     row = y // box_height
     col = x // box_width
 
-    row = max(0, min(row, rows - 1))
-    col = max(0, min(col, columns - 1))
+    row = max(0, min(row, ROWS - 1))
+    col = max(0, min(col, COLS - 1))
     return row, col
 
 def main(): # Main function to run the visualization
@@ -160,11 +87,17 @@ def main(): # Main function to run the visualization
         screen.fill(WHITE)
         for row in grid:
             for box in row:
-                box.draw(screen)
+                rect = pygame.Rect(
+                    box.col * box_width,
+                    box.row * box_height,
+                    box_width,
+                    box_height
+                )
+                pygame.draw.rect(screen, box.color, rect)
 
-        for i in range(rows + 1):
+        for i in range(ROWS + 1):
             pygame.draw.line(screen, GREY, (0, i * box_height), (WINDOW_WIDTH, i * box_height))
-        for j in range(columns + 1):
+        for j in range(COLS + 1):
             pygame.draw.line(screen, GREY, (j * box_width, 0), (j * box_width, WINDOW_HEIGHT))
 
         if elapsed_time is not None:
