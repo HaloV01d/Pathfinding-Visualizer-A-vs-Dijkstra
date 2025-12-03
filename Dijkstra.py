@@ -1,6 +1,7 @@
 import pygame # Import Pygame library
 import sys # Import sys for system-specific parameters and functions
 import time # Import time for time-related functions
+import heapq # Import heapq for priority queue implementation
 from grid import (
     Box, make_grid, recolor_path,
     ROWS, COLS,
@@ -27,34 +28,43 @@ ORANGE = (255, 165, 0)
 
 # Dijkstra's algorithm implementation
 def dijkstra_algorithm(draw, grid, start, end):
-    start_time = time.time() # Record start time
+    start_time = time.time()
+
     count = 0
     open_set = []
-    open_set.append((0, count, start))
+    heapq.heappush(open_set, (0, count, start))
+
     came_from = {}
+
     g_score = {box: float("inf") for row in grid for box in row}
     g_score[start] = 0
 
-    while open_set:
-        open_set.sort(key=lambda x: x[0])
-        current = open_set.pop(0)[2]
+    open_hash = {start}
 
+    while open_set:
+        current_cost, _, current = heapq.heappop(open_set)
+        open_hash.remove(current)
+
+        # reached goal
         if current == end:
             recolor_path(came_from, end, draw)
             end.set_end()
             start.set_start()
-            elapsed_time = time.time() - start_time # Calculate elapsed time
+            elapsed_time = time.time() - start_time
             return round(elapsed_time, 3)
 
+        # explore neighbors
         for neighbor in current.neighbors:
-            temp_g_score = g_score[current] + current.weight
+            new_cost = g_score[current] + current.weight
 
-            if temp_g_score < g_score[neighbor]:
+            if new_cost < g_score[neighbor]:
                 came_from[neighbor] = current
-                g_score[neighbor] = temp_g_score
-                if neighbor not in [i[2] for i in open_set]:
+                g_score[neighbor] = new_cost
+
+                if neighbor not in open_hash:
                     count += 1
-                    open_set.append((g_score[neighbor], count, neighbor))
+                    heapq.heappush(open_set, (new_cost, count, neighbor))
+                    open_hash.add(neighbor)
                     neighbor.color = GREEN
 
         draw()

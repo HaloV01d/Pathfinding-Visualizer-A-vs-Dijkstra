@@ -1,6 +1,7 @@
 import pygame # Import Pygame library
 import sys # Import sys for system-specific parameters and functions
 import time # Import time for time-related functions
+import heapq # Import heapq for priority queue implementation
 from grid import (
     Box, make_grid, recolor_path,
     ROWS, COLS,
@@ -24,7 +25,8 @@ def A_Star_Algorithm(draw, grid, start, end):
     start_time = time.time()
     count = 0
     open_set = []
-    open_set.append((0, count, start))
+    heapq.heappush(open_set, (0, count, start))
+
     came_from = {}
 
     g_score = {box: float("inf") for row in grid for box in row}
@@ -36,8 +38,7 @@ def A_Star_Algorithm(draw, grid, start, end):
     open_set_hash = {start}
 
     while open_set:
-        open_set.sort(key=lambda x: x[0])
-        current = open_set.pop(0)[2]
+        current_f, _, current = heapq.heappop(open_set)
         open_set_hash.remove(current)
 
         if current == end:
@@ -53,11 +54,13 @@ def A_Star_Algorithm(draw, grid, start, end):
             if temp_g_score < g_score[neighbor]:
                 came_from[neighbor] = current
                 g_score[neighbor] = temp_g_score
-                f_score[neighbor] = temp_g_score + heuristic(neighbor, end)
+
+                new_f = temp_g_score + heuristic(neighbor, end)
+                f_score[neighbor] = new_f
 
                 if neighbor not in open_set_hash:
                     count += 1
-                    open_set.append((f_score[neighbor], count, neighbor))
+                    heapq.heappush(open_set, (new_f, count, neighbor))
                     open_set_hash.add(neighbor)
                     neighbor.color = GREEN
 
