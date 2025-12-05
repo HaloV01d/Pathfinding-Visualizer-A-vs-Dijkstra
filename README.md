@@ -130,8 +130,8 @@ Pathfinding-Visualizer-A-vs-Dijkstra/
 
 | Algorithm | Time Complexity | Space Complexity | Uses Heuristic | Best Use Case |
 |-----------|-----------------------|------------------|----------------|---------------|
-| **A\*** | O((V+E) log V) | O(V) | ✅ Yes | Best for finding lowest cost path efficiently with a good heuristic |
-| **Dijkstra** | O((V+E) log V) | O(V) | ❌ No | Weighted graphs, guaranteed lowest cost path |
+| **A\*** | O((E log V) | O(V) | ✅ Yes | Best for finding lowest cost path efficiently with a good heuristic |
+| **Dijkstra** | O(E log V) | O(V) | ❌ No | Weighted graphs, guaranteed lowest cost path |
 | **BFS** | O(V+E) | O(V) | ❌ No | Unweighted graphs, level-by-level exploration for shortest path |
 
 
