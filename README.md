@@ -11,29 +11,34 @@ An interactive Python-based visualization tool that compares three popular pathf
 - **Side-by-Side Comparison**: Run all three algorithms simultaneously on identical grids
 - **Interactive Grid**: Click and drag to create start/end points and obstacles
 - **Real-Time Visualization**: Watch algorithms explore the grid in real-time
-- **Performance Metrics**: Compare execution time, nodes expanded, and path length
-- **Resizable Window**: Dynamic UI that maintains aspect ratio
-- **Visual Feedback**: Color-coded cells show explored nodes, paths, and obstacles
+- **Comprehensive Performance Metrics**: Compare execution time, nodes expanded, path length, and total path cost
+- **Weighted Terrain System**: Three terrain types with different movement costs (Normal: 1, Mud: 3, Water: 5)
+- **Resizable Window**: Dynamic UI that maintains 2:1 aspect ratio with letterboxing for optimal viewing
+- **Visual Feedback**: Color-coded cells show explored nodes, paths, obstacles, and terrain types
+- **Intuitive Controls**: Quick-switch terrain modes with keyboard shortcuts
 
 ## 🎯 Algorithms Implemented
 
 ### A* (A-Star) Algorithm
 - **Type**: Informed search algorithm
 - **Heuristic**: Manhattan distance
+- **Weight Handling**: Considers terrain weights in path cost calculation
 - **Optimality**: Guaranteed to find the path with the least cost
-- **Efficiency**: Generally fastest due to heuristic guidance
+- **Efficiency**: Generally fastest due to heuristic guidance toward the goal
 
 ### Dijkstra's Algorithm
 - **Type**: Uninformed search algorithm
-- **Strategy**: Explores nodes based on cumulative distance
+- **Strategy**: Explores nodes based on cumulative cost (including terrain weights)
+- **Weight Handling**: Naturally considers terrain weights, avoiding expensive terrain
 - **Optimality**: Guaranteed to find the path with the least cost
 - **Efficiency**: Explores more nodes than A* but reliable
 
 ### Breadth-First Search (BFS)
 - **Type**: Uninformed search algorithm
 - **Strategy**: Explores level by level
-- **Optimality**: Finds the shortest path, but is only optimal in cost when all edges have equal weight
-- **Efficiency**: Simple but explores many nodes
+- **Weight Handling**: Does not consider terrain weights (treats all terrain equally)
+- **Optimality**: Finds the shortest path in steps, but not optimal in cost for weighted terrain
+- **Efficiency**: Simple but explores many nodes and may choose higher-cost paths
 
 ## 🚀 Getting Started
 
@@ -67,27 +72,29 @@ An interactive Python-based visualization tool that compares three popular pathf
 1. **Left Click**: 
    - First click: Set start point (Orange)
    - Second click: Set end point (Turquoise)
-   - Additional clicks: Draw obstacles (Color depends on current mode)
+   - Additional clicks: Draw terrain based on current mode (Wall/Mud/Water)
 
 2. **Right Click**: 
-   - Remove walls or reset cells
+   - Remove obstacles or reset cells to normal terrain
 
 3. **Keyboard Controls**:
-   - `SPACE`: Start the visualization
-   - `R`: Clear the grid
-   - `Q`: Select wall mode (Black)
-   - `W`: Select mud mode (Brown)
-   - `E`: Select water mode (Blue)
+   - `SPACE`: Start the visualization and run all three algorithms
+   - `R`: Reset the entire grid (clears start, end, obstacles, and statistics)
+   - `Q`: Switch to Wall mode (Black obstacles with infinite cost)
+   - `W`: Switch to Mud mode (Brown terrain with weight 3)
+   - `E`: Switch to Water mode (Blue terrain with weight 5)
 
 ### Workflow
 
-1. Launch the application
-2. Click to place your start point
-3. Click again to place your end point
-4. Draw obstacles by clicking and dragging
-5. Press `SPACE` to run all three algorithms
-6. Observe the differences in how each algorithm explores the grid
-7. Check the statistics panel for performance metrics
+1. Launch the application with `python joint_UI.py`
+2. Click on the **center grid** to place your start point (orange)
+3. Click again to place your end point (turquoise)
+4. Select terrain mode using `Q` (walls), `W` (mud), or `E` (water)
+5. Draw terrain by clicking and dragging on the center grid
+6. Press `SPACE` to run all three algorithms simultaneously
+7. Observe the differences in how each algorithm explores the grid across all three panels
+8. Compare the performance metrics displayed below each algorithm (Time, Expanded nodes, Path Length, Cost)
+9. Press `R` to reset and try different scenarios
 
 ## 📊 Understanding the Visualization
 
@@ -107,11 +114,11 @@ An interactive Python-based visualization tool that compares three popular pathf
 
 ### Performance Metrics
 
-The application displays real-time statistics for each algorithm:
-- **Execution Time**: How long the algorithm took to find the path
-- **Nodes Expanded**: Number of nodes explored during the search
-- **Path Length**: Length of the final path found
-- **Cost**: Accumulated cost of nodes in path
+The application displays comprehensive statistics for each algorithm below its panel:
+- **Execution Time**: How long the algorithm took to find the path (in seconds)
+- **Nodes Expanded**: Number of nodes explored/closed during the search (shown in red)
+- **Path Length**: Number of steps in the final path found (shown in purple)
+- **Cost**: Total accumulated cost of the path considering terrain weights (sum of weights along purple path)
 
 ## 📁 Project Structure
 
@@ -148,24 +155,30 @@ This visualizer is perfect for:
 ## 🛠️ Technical Details
 
 - **Grid Size**: 25×25 cells (configurable in `grid.py`)
-- **Window**: Resizable with maintained aspect ratio (2:1)
-- **Rendering**: Pygame-based real-time visualization
+- **Window**: Resizable with maintained 2:1 aspect ratio (default: 1240×620 pixels)
+- **Rendering**: Pygame-based real-time visualization with letterboxing for optimal grid display
 - **Architecture**: Modular design with separate algorithm implementations
+- **Terrain System**: Weighted graph with three terrain types (Normal, Mud, Water)
+- **Pathfinding**: Uses priority queues (heapq) for A* and Dijkstra, deque for BFS
+- **Visualization**: All three grids updated synchronously; only center grid is editable
 
 ## 💡 Key Insights from Visualization
 
 ### Why A* is Faster
-A* uses the Manhattan distance heuristic to guide its search towards the goal, resulting in fewer nodes explored compared to uninformed algorithms.
+A* uses the Manhattan distance heuristic to guide its search towards the goal, resulting in fewer nodes explored compared to uninformed algorithms. On weighted terrain, A* efficiently balances the cost-so-far with the estimated cost-to-goal.
 
 ### When to Use Each Algorithm
-- **A***: When you need the fastest minimum cost path and can define a good heuristic
-- **Dijkstra**: When you need a guaranteed minimum cost path without a heuristic
-- **BFS**: When all edges have equal weight and you want simplicity
+- **A***: When you need the fastest minimum cost path and can define a good heuristic (best for weighted graphs)
+- **Dijkstra**: When you need a guaranteed minimum cost path without a heuristic (reliable for weighted graphs)
+- **BFS**: When all edges have equal weight and you only care about the shortest path in steps (not suitable for weighted terrain optimization)
 
-### Observable Differences
-- **A*** explores in a focused direction toward the goal thanks to the heuristic, expanding far fewer nodes.
-- **Dijkstra** expands outward uniformly based on cumulative cost, avoiding expensive terrain.
-- **BFS** expands outward level-by-level, like Dijkstra but ignoring weights, causing a shorter but higher cost final path.
+### Observable Differences on Weighted Terrain
+- **A*** explores in a focused direction toward the goal thanks to the heuristic, expanding far fewer nodes while still finding the optimal low-cost path.
+- **Dijkstra** expands outward uniformly based on cumulative cost, methodically avoiding expensive terrain like water and mud, guaranteeing the lowest-cost path.
+- **BFS** expands outward level-by-level, completely ignoring terrain weights. It finds the path with the fewest steps but often results in a much higher total cost, traversing expensive terrain unnecessarily.
+
+### Terrain Weight Impact
+The weighted terrain system (Normal=1, Mud=3, Water=5) demonstrates how A* and Dijkstra intelligently route around expensive terrain, while BFS treats all terrain equally and may choose paths that cross high-cost areas if they have fewer steps.
 
 ## 📌 Example Scenarios
 The following examples demonstrate how the visualizer behaves on weighted grids:
@@ -184,18 +197,14 @@ The following examples demonstrate how the visualizer behaves on weighted grids:
 
 ![GIF demonstrating visualization of algorithm execution](assets/animation.gif "Scenario B animation")
 
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest new features
-- Submit pull requests
-- Improve documentation
-
 ### Ideas for Enhancement
-- Add more heuristics (Euclidean, Chebyshev)
-- Implement more terrain types
-- Add diagonal movement option
-- Include more algorithms (Greedy Best-First, Jump Point Search)
+- Add more heuristics (Euclidean, Chebyshev, Octile)
+- Implement more terrain types with configurable weights
+- Add diagonal movement option (8-directional instead of 4-directional)
+- Include more algorithms (Greedy Best-First, Jump Point Search, Bidirectional Search)
 - Export visualization as GIF/video
+- Add animation speed control
+- Implement grid save/load functionality
+- Add random maze generation
+- Display visited nodes in real-time during algorithm execution
  
